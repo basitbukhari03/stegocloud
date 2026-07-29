@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Welcome{% endblock %}
+
+{% block content %}
+<!-- ═══════════════════ HERO ════════════════════════════════════════════════ -->
+<div class="landing-hero">
+  <!-- Animated background particles -->
+  <div class="particles" aria-hidden="true">
+    {% for i in range(20) %}
+    <div class="particle" style="--delay:{{ loop.index * 0.3 }}s; --x:{{ loop.index * 5 }}%"></div>
+    {% endfor %}
+  </div>
+
+  <div class="hero-content">
+    <div class="hero-badge">🏆 University Hackathon Project</div>
+    <h1 class="hero-title">
+      <span class="gradient-text">StegoCloud</span>
+    </h1>
+    <p class="hero-subtitle">Steganography-Based Cloud Data Protection System</p>
+    <p class="hero-description">
+      Military-grade <strong>AES-256 encryption</strong> combined with
+      <strong>LSB steganography</strong> to hide your secrets inside ordinary images.
+      Two-factor authentication keeps your account impenetrable.
+    </p>
+
+    <div class="hero-actions">
+      <a href="{{ url_for('auth.register') }}" class="btn btn-primary-glow btn-lg" id="btn-get-started">
+        <i class="bi bi-rocket-takeoff-fill me-2"></i>Get Started
+      </a>
+      <a href="{{ url_for('auth.login') }}" class="btn btn-outline-glow btn-lg" id="btn-login">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ HOW IT WORKS ════════════════════════════════════════ -->
+<section class="landing-section">
+  <div class="container">
+    <h2 class="section-title text-center">How It Works</h2>
+    <p class="section-subtitle text-center">Two layers of security — invisible to the naked eye</p>
+
+    <div class="row g-4 mt-4">
+      <div class="col-md-4">
+        <div class="feature-card">
+          <div class="feature-icon" style="--color:#00d4ff">
+            <i class="bi bi-shield-lock"></i>
+          </div>
+          <h3>Layer 1: AES-256</h3>
+          <p>Your secret message is encrypted with AES-256-CBC using a password-derived key. Even if someone extracts the data, it's unreadable without the password.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature-card">
+          <div class="feature-icon" style="--color:#7c3aed">
+            <i class="bi bi-image"></i>
+          </div>
+          <h3>Layer 2: Steganography</h3>
+          <p>The encrypted data is hidden in the Least Significant Bits of image pixels. The image looks completely identical to the human eye.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature-card">
+          <div class="feature-icon" style="--color:#10b981">
+            <i class="bi bi-person-lock"></i>
+          </div>
+          <h3>MFA Authentication</h3>
+          <p>Every account is protected by Time-based One-Time Passwords (TOTP) compatible with Google Authenticator. No data without two factors.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ STATS ════════════════════════════════════════════════ -->
+<section class="landing-stats">
+  <div class="container">
+    <div class="row g-4 text-center">
+      <div class="col-6 col-md-3">
+        <div class="stat-item">
+          <div class="stat-num">256</div>
+          <div class="stat-label">Bit AES Key</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-item">
+          <div class="stat-num">LSB</div>
+          <div class="stat-label">Steganography</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-item">
+          <div class="stat-num">TOTP</div>
+          <div class="stat-label">2-Factor Auth</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-item">
+          <div class="stat-num">0</div>
+          <div class="stat-label">Visible Difference</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ TECH STACK BADGES ═══════════════════════════════════ -->
+<section class="landing-section">
+  <div class="container text-center">
+    <h2 class="section-title">Tech Stack</h2>
+    <div class="tech-badges mt-4">
+      <span class="tech-badge"><i class="bi bi-filetype-py me-1"></i>Python Flask</span>
+      <span class="tech-badge"><i class="bi bi-shield-fill-check me-1"></i>AES-256</span>
+      <span class="tech-badge"><i class="bi bi-image-fill me-1"></i>Pillow LSB</span>
+      <span class="tech-badge"><i class="bi bi-database-fill me-1"></i>SQLite</span>
+      <span class="tech-badge"><i class="bi bi-phone me-1"></i>TOTP MFA</span>
+      <span class="tech-badge"><i class="bi bi-bar-chart-fill me-1"></i>Chart.js</span>
+    </div>
+    <div class="mt-5">
+      <a href="{{ url_for('auth.register') }}" class="btn btn-primary-glow btn-lg px-5" id="btn-cta">
+        Start Protecting Your Data 🔒
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

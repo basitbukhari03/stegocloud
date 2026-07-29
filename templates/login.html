@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Sign In{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo">🔐</div>
+      <h1 class="auth-title">Welcome Back</h1>
+      <p class="auth-subtitle">Sign in to StegoCloud</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.login') }}" id="loginForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+      <div class="form-group mb-3">
+        <label class="form-label" for="username">
+          <i class="bi bi-person me-1"></i>Username
+        </label>
+        <input type="text" class="form-control sc-input" id="username" name="username"
+               placeholder="Enter username" required autocomplete="username" />
+      </div>
+
+      <div class="form-group mb-4">
+        <label class="form-label" for="password">
+          <i class="bi bi-lock me-1"></i>Password
+        </label>
+        <div class="input-group">
+          <input type="password" class="form-control sc-input" id="password" name="password"
+                 placeholder="Enter password" required autocomplete="current-password" />
+          <button class="btn btn-outline-secondary toggle-pw" type="button"
+                  onclick="togglePw()" aria-label="Toggle password">
+            <i class="bi bi-eye" id="eyeIcon"></i>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary-glow w-100 py-2" id="btn-login">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Continue to MFA
+        <span class="spinner-border spinner-border-sm ms-2 d-none" id="loginSpinner"></span>
+      </button>
+    </form>
+
+    <!-- Security note -->
+    <div class="security-note mt-3">
+      <i class="bi bi-info-circle me-1"></i>
+      After password verification you will be asked for your 6-digit authenticator code.
+    </div>
+
+    <div class="auth-footer mt-4 text-center">
+      New here?
+      <a href="{{ url_for('auth.register') }}" class="auth-link">Create Account</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.getElementById('loginForm').addEventListener('submit', function(){
+  document.getElementById('loginSpinner').classList.remove('d-none');
+});
+function togglePw() {
+  const el = document.getElementById('password');
+  const ic = document.getElementById('eyeIcon');
+  if (el.type==='password') { el.type='text';     ic.className='bi bi-eye-slash'; }
+  else                      { el.type='password'; ic.className='bi bi-eye'; }
+}
+</script>
+{% endblock %}

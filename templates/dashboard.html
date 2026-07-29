@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- ═══════════════════════ STAT CARDS ══════════════════════════════════════ -->
+<div class="row g-4 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card" style="--accent:#00d4ff">
+      <div class="stat-card-icon"><i class="bi bi-cloud-fill"></i></div>
+      <div class="stat-card-body">
+        <div class="stat-card-num" id="totalFilesCount">{{ total_files }}</div>
+        <div class="stat-card-label">Files Stored</div>
+      </div>
+      <div class="stat-card-glow"></div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card" style="--accent:#7c3aed">
+      <div class="stat-card-icon"><i class="bi bi-eye-slash-fill"></i></div>
+      <div class="stat-card-body">
+        <div class="stat-card-num" id="totalHidesCount">{{ total_hides }}</div>
+        <div class="stat-card-label">Hide Operations</div>
+      </div>
+      <div class="stat-card-glow"></div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card" style="--accent:#10b981">
+      <div class="stat-card-icon"><i class="bi bi-unlock-fill"></i></div>
+      <div class="stat-card-body">
+        <div class="stat-card-num" id="totalExtractsCount">{{ total_extracts }}</div>
+        <div class="stat-card-label">Extract Operations</div>
+      </div>
+      <div class="stat-card-glow"></div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card" style="--accent:#f59e0b">
+      <div class="stat-card-icon"><i class="bi bi-shield-check"></i></div>
+      <div class="stat-card-body">
+        <div class="stat-card-num" style="font-size:1.2rem">
+          {% if current_user.mfa_enabled %}
+            <span style="color:#10b981">✅ Enabled</span>
+          {% else %}
+            <span style="color:#ef4444">❌ Disabled</span>
+          {% endif %}
+        </div>
+        <div class="stat-card-label">Account Security (MFA)</div>
+      </div>
+      <div class="stat-card-glow"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ CHARTS ROW ═════════════════════════════════════ -->
+<div class="row g-4 mb-4">
+  <!-- Activity bar chart -->
+  <div class="col-lg-8">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h5 class="chart-title"><i class="bi bi-bar-chart-line me-2"></i>Activity — Last 7 Days</h5>
+      </div>
+      <div class="chart-card-body">
+        <canvas id="activityChart" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+  <!-- Pie chart -->
+  <div class="col-lg-4">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h5 class="chart-title"><i class="bi bi-pie-chart me-2"></i>File Sizes</h5>
+      </div>
+      <div class="chart-card-body d-flex align-items-center justify-content-center">
+        {% if pie_data %}
+          <canvas id="pieChart" height="200"></canvas>
+        {% else %}
+          <div class="empty-chart-msg">
+            <i class="bi bi-cloud-slash" style="font-size:2.5rem;color:#374151"></i>
+            <p class="mt-2" style="color:#6b7280">No files yet</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ RECENT ACTIVITY ════════════════════════════════ -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="sc-card">
+      <div class="sc-card-header">
+        <h5 class="sc-card-title"><i class="bi bi-clock-history me-2"></i>Recent Activity</h5>
+      </div>
+      <div class="sc-card-body p-0">
+        {% if recent_logs %}
+        <div class="table-responsive">
+          <table class="table sc-table mb-0">
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Details</th>
+                <th>IP Address</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for log in recent_logs %}
+              <tr>
+                <td>
+                  <span class="action-badge action-{{ log.action|lower }}">
+                    {{ log.action }}
+                  </span>
+                </td>
+                <td class="text-truncate" style="max-width:200px" title="{{ log.details }}">
+                  {{ log.details or '—' }}
+                </td>
+                <td><code class="ip-code">{{ log.ip_address or '—' }}</code></td>
+                <td>
+                  <span title="{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}">
+                    {{ log.timestamp.strftime('%d %b %H:%M') }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <i class="bi bi-journal-x"></i>
+          <p>No activity yet</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Security Tips -->
+  <div class="col-lg-4">
+    <div class="sc-card">
+      <div class="sc-card-header">
+        <h5 class="sc-card-title"><i class="bi bi-lightbulb me-2"></i>Security Tips</h5>
+      </div>
+      <div class="sc-card-body">
+        <div class="tip-carousel" id="tipCarousel">
+          <div class="tip-item active">
+            <div class="tip-icon">🔑</div>
+            <p>Use a <strong>unique, strong password</strong> for each encryption operation. Never reuse passwords.</p>
+          </div>
+          <div class="tip-item">
+            <div class="tip-icon">📱</div>
+            <p>Keep your <strong>Google Authenticator</strong> backed up. Store the secret key safely in case you lose your device.</p>
+          </div>
+          <div class="tip-item">
+            <div class="tip-icon">🖼️</div>
+            <p>Use <strong>high-resolution PNG images</strong> as covers — they hold more data and LSB changes are imperceptible.</p>
+          </div>
+        </div>
+        <div class="tip-dots mt-3 text-center">
+          <span class="tip-dot active" data-tip="0"></span>
+          <span class="tip-dot" data-tip="1"></span>
+          <span class="tip-dot" data-tip="2"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="sc-card mt-4">
+      <div class="sc-card-header">
+        <h5 class="sc-card-title"><i class="bi bi-lightning-fill me-2"></i>Quick Actions</h5>
+      </div>
+      <div class="sc-card-body d-grid gap-2">
+        <a href="{{ url_for('main.hide') }}" class="btn btn-primary-glow" id="quickHide">
+          <i class="bi bi-eye-slash-fill me-2"></i>Hide Data in Image
+        </a>
+        <a href="{{ url_for('main.extract') }}" class="btn btn-outline-glow" id="quickExtract">
+          <i class="bi bi-unlock-fill me-2"></i>Extract Hidden Data
+        </a>
+        <a href="{{ url_for('main.my_files') }}" class="btn btn-outline-secondary" id="quickFiles">
+          <i class="bi bi-cloud-fill me-2"></i>View My Files
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ── Activity Bar Chart ─────────────────────────────────────────────────────
+const actCtx = document.getElementById('activityChart').getContext('2d');
+new Chart(actCtx, {
+  type: 'bar',
+  data: {
+    labels: {{ chart_labels | tojson }},
+    datasets: [
+      {
+        label: 'Hide Operations',
+        data:  {{ chart_hides | tojson }},
+        backgroundColor: 'rgba(124,58,237,0.7)',
+        borderColor:     '#7c3aed',
+        borderWidth: 1, borderRadius: 6,
+      },
+      {
+        label: 'Extract Operations',
+        data:  {{ chart_extracts | tojson }},
+        backgroundColor: 'rgba(16,185,129,0.7)',
+        borderColor:     '#10b981',
+        borderWidth: 1, borderRadius: 6,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color:'#e2e8f0' } } },
+    scales: {
+      x: { ticks:{ color:'#9ca3af' }, grid:{ color:'#1f2937' } },
+      y: { ticks:{ color:'#9ca3af', stepSize:1 }, grid:{ color:'#1f2937' }, beginAtZero:true }
+    }
+  }
+});
+
+// ── Pie Chart ──────────────────────────────────────────────────────────────
+{% if pie_data %}
+const pieCtx = document.getElementById('pieChart').getContext('2d');
+new Chart(pieCtx, {
+  type: 'doughnut',
+  data: {
+    labels:    {{ pie_labels | tojson }},
+    datasets: [{
+      data:            {{ pie_data | tojson }},
+      backgroundColor: ['#00d4ff','#7c3aed','#10b981','#f59e0b','#ef4444','#3b82f6'],
+      borderColor:     '#111827',
+      borderWidth:     3,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    cutout: '65%',
+  }
+});
+{% endif %}
+
+// ── Security Tips Carousel ─────────────────────────────────────────────────
+(function() {
+  const items = document.querySelectorAll('.tip-item');
+  const dots  = document.querySelectorAll('.tip-dot');
+  let   cur   = 0;
+  function show(i) {
+    items.forEach(el => el.classList.remove('active'));
+    dots.forEach(d  => d.classList.remove('active'));
+    items[i].classList.add('active');
+    dots[i].classList.add('active');
+    cur = i;
+  }
+  dots.forEach(d => d.addEventListener('click', () => show(+d.dataset.tip)));
+  setInterval(() => show((cur + 1) % items.length), 5000);
+})();
+</script>
+{% endblock %}

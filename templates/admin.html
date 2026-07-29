@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel{% endblock %}
+{% block page_title %}Admin Panel{% endblock %}
+
+{% block content %}
+<!-- ── Admin Stat Cards ──────────────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card" style="--accent:#00d4ff">
+      <div class="stat-card-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="stat-card-body">
+        <div class="stat-card-num">{{ total_users }}</div>
+        <div class="stat-card-label">Total Users</div>
+      </div>
+      <div class="stat-card-glow"></div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card" style="--accent:#10b981">
+      <div class="stat-card-icon"><i class="bi bi-person-check-fill"></i></div>
+      <div class="stat-card-body">
+        <div class="stat-card-num">{{ active_users }}</div>
+        <div class="stat-card-label">Active Users</div>
+      </div>
+      <div class="stat-card-glow"></div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card" style="--accent:#7c3aed">
+      <div class="stat-card-icon"><i class="bi bi-cloud-fill"></i></div>
+      <div class="stat-card-body">
+        <div class="stat-card-num">{{ total_files }}</div>
+        <div class="stat-card-label">Total Files</div>
+      </div>
+      <div class="stat-card-glow"></div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card" style="--accent:#f59e0b">
+      <div class="stat-card-icon"><i class="bi bi-activity"></i></div>
+      <div class="stat-card-body">
+        <div class="stat-card-num">{{ ops_today }}</div>
+        <div class="stat-card-label">Operations Today</div>
+      </div>
+      <div class="stat-card-glow"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Users Table ───────────────────────────────────────────────────────── -->
+<div class="sc-card mb-4">
+  <div class="sc-card-header d-flex align-items-center justify-content-between">
+    <h5 class="sc-card-title mb-0">
+      <i class="bi bi-people-fill me-2"></i>User Management
+    </h5>
+    <span class="badge-count">{{ total_users }} users</span>
+  </div>
+  <div class="sc-card-body p-0">
+    <div class="table-responsive">
+      <table class="table sc-table mb-0" id="usersTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>MFA</th>
+            <th>Files</th>
+            <th>Joined</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>
+              <div class="user-chip-lg">
+                <div class="chip-avatar">{{ u.username[0]|upper }}</div>
+                {{ u.username }}
+                {% if u.id == current_user.id %}
+                  <span class="badge bg-primary ms-1" style="font-size:.65rem">You</span>
+                {% endif %}
+              </div>
+            </td>
+            <td><span style="color:#9ca3af">{{ u.email }}</span></td>
+            <td>
+              <span class="role-badge role-{{ u.role }}">{{ u.role|upper }}</span>
+            </td>
+            <td>
+              {% if u.mfa_enabled %}
+                <span class="text-success"><i class="bi bi-shield-check-fill"></i> On</span>
+              {% else %}
+                <span class="text-danger"><i class="bi bi-shield-x"></i> Off</span>
+              {% endif %}
+            </td>
+            <td>{{ u.files|length }}</td>
+            <td>{{ u.created_at.strftime('%d %b %Y') }}</td>
+            <td>
+              {% if u.is_active %}
+                <span class="status-active">● Active</span>
+              {% else %}
+                <span class="status-inactive">● Inactive</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="action-btns">
+              {% if u.id != current_user.id %}
+                <!-- Activate / Deactivate -->
+                <form method="POST" action="{{ url_for('admin.toggle_user') }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <input type="hidden" name="user_id" value="{{ u.id }}" />
+                  <button type="submit"
+                          class="btn btn-sm {% if u.is_active %}btn-warning{% else %}btn-success{% endif %}"
+                          id="btnToggle_{{ u.id }}"
+                          style="font-size:.75rem;padding:3px 8px;"
+                          onclick="return confirm('{{ 'Deactivate' if u.is_active else 'Activate' }} user {{ u.username }}?')">
+                    {% if u.is_active %}
+                      <i class="bi bi-person-x"></i>
+                    {% else %}
+                      <i class="bi bi-person-check"></i>
+                    {% endif %}
+                  </button>
+                </form>
+
+                <!-- Promote to Admin / Demote to User -->
+                {% if u.role == 'user' %}
+                <form method="POST" action="{{ url_for('admin.change_role') }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <input type="hidden" name="user_id" value="{{ u.id }}" />
+                  <input type="hidden" name="new_role" value="admin" />
+                  <button type="submit"
+                          class="btn btn-sm"
+                          id="btnPromote_{{ u.id }}"
+                          style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3);font-size:.75rem;padding:3px 8px;"
+                          onclick="return confirm('Promote {{ u.username }} to ADMIN? They will get full system access.')">
+                    <i class="bi bi-shield-fill-plus"></i> Make Admin
+                  </button>
+                </form>
+                {% else %}
+                <form method="POST" action="{{ url_for('admin.change_role') }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <input type="hidden" name="user_id" value="{{ u.id }}" />
+                  <input type="hidden" name="new_role" value="user" />
+                  <button type="submit"
+                          class="btn btn-sm"
+                          id="btnDemote_{{ u.id }}"
+                          style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);font-size:.75rem;padding:3px 8px;"
+                          onclick="return confirm('Demote {{ u.username }} from Admin to User? They will lose admin access.')">
+                    <i class="bi bi-shield-minus"></i> Demote
+                  </button>
+                </form>
+                {% endif %}
+
+              {% else %}
+                <span style="color:#4b5563;font-size:.8rem">— You —</span>
+              {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── Recent System Logs ─────────────────────────────────────────────────── -->
+<div class="sc-card">
+  <div class="sc-card-header d-flex align-items-center justify-content-between">
+    <h5 class="sc-card-title mb-0">
+      <i class="bi bi-journal-text me-2"></i>Recent System Events
+    </h5>
+    <a href="{{ url_for('admin.admin_logs') }}" class="btn btn-sm btn-outline-secondary"
+       id="btnAllLogs">View All Logs</a>
+  </div>
+  <div class="sc-card-body p-0">
+    {% if recent_logs %}
+    <div class="table-responsive">
+      <table class="table sc-table mb-0">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Action</th>
+            <th>Details</th>
+            <th>IP</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in recent_logs %}
+          <tr>
+            <td><span class="user-chip">{{ log.username }}</span></td>
+            <td>
+              <span class="action-badge action-{{ log.action|lower }}">{{ log.action }}</span>
+            </td>
+            <td class="text-truncate" style="max-width:220px" title="{{ log.details }}">
+              {{ log.details or '—' }}
+            </td>
+            <td><code class="ip-code">{{ log.ip_address or '—' }}</code></td>
+            <td>{{ log.timestamp.strftime('%d %b %H:%M:%S') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state py-4">
+      <p style="color:#6b7280">No system events recorded yet.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

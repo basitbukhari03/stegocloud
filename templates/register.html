@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Create Account{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <!-- Header -->
+    <div class="auth-header">
+      <div class="auth-logo">🔐</div>
+      <h1 class="auth-title">Create Account</h1>
+      <p class="auth-subtitle">Join StegoCloud — secure your secrets</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.register') }}" novalidate id="registerForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+      <!-- Username -->
+      <div class="form-group mb-3">
+        <label class="form-label" for="username">
+          <i class="bi bi-person me-1"></i>Username
+        </label>
+        <input type="text" class="form-control sc-input" id="username" name="username"
+               placeholder="Choose a username" required autocomplete="username" />
+      </div>
+
+      <!-- Email -->
+      <div class="form-group mb-3">
+        <label class="form-label" for="email">
+          <i class="bi bi-envelope me-1"></i>Email Address
+        </label>
+        <input type="email" class="form-control sc-input" id="email" name="email"
+               placeholder="you@example.com" required autocomplete="email" />
+      </div>
+
+      <!-- Password -->
+      <div class="form-group mb-3">
+        <label class="form-label" for="password">
+          <i class="bi bi-lock me-1"></i>Password
+        </label>
+        <div class="input-group">
+          <input type="password" class="form-control sc-input" id="password" name="password"
+                 placeholder="Min 8 chars, 1 uppercase, 1 number, 1 special" required
+                 autocomplete="new-password" oninput="updateStrength(this.value)" />
+          <button class="btn btn-outline-secondary toggle-pw" type="button"
+                  onclick="togglePassword('password')" aria-label="Toggle password">
+            <i class="bi bi-eye" id="eyePassword"></i>
+          </button>
+        </div>
+        <!-- Password strength meter -->
+        <div class="strength-meter mt-2">
+          <div class="strength-bar" id="strengthBar"></div>
+        </div>
+        <small class="strength-label" id="strengthLabel">Enter a password</small>
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="form-group mb-4">
+        <label class="form-label" for="confirm_password">
+          <i class="bi bi-lock-fill me-1"></i>Confirm Password
+        </label>
+        <div class="input-group">
+          <input type="password" class="form-control sc-input" id="confirm_password"
+                 name="confirm_password" placeholder="Re-enter password" required
+                 autocomplete="new-password" />
+          <button class="btn btn-outline-secondary toggle-pw" type="button"
+                  onclick="togglePassword('confirm_password')" aria-label="Toggle confirm password">
+            <i class="bi bi-eye" id="eyeConfirmPassword"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Password Requirements hint -->
+      <div class="pw-requirements mb-4">
+        <p class="req-title mb-1">Password must contain:</p>
+        <ul class="req-list">
+          <li id="req-len">At least 8 characters</li>
+          <li id="req-upper">One uppercase letter (A-Z)</li>
+          <li id="req-num">One number (0-9)</li>
+          <li id="req-special">One special character (!@#$…)</li>
+        </ul>
+      </div>
+
+      <button type="submit" class="btn btn-primary-glow w-100 py-2" id="btn-register">
+        <i class="bi bi-person-plus-fill me-2"></i>Create Account
+      </button>
+    </form>
+
+    <div class="auth-footer mt-4 text-center">
+      Already have an account?
+      <a href="{{ url_for('auth.login') }}" class="auth-link">Sign In</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function updateStrength(pw) {
+  const bar   = document.getElementById('strengthBar');
+  const label = document.getElementById('strengthLabel');
+  let   score = 0;
+  if (pw.length >= 8)               { score++; document.getElementById('req-len').classList.add('req-ok'); }
+  else                              { document.getElementById('req-len').classList.remove('req-ok'); }
+  if (/[A-Z]/.test(pw))            { score++; document.getElementById('req-upper').classList.add('req-ok'); }
+  else                              { document.getElementById('req-upper').classList.remove('req-ok'); }
+  if (/\d/.test(pw))               { score++; document.getElementById('req-num').classList.add('req-ok'); }
+  else                              { document.getElementById('req-num').classList.remove('req-ok'); }
+  if (/[!@#$%^&*(),.?":{}|<>]/.test(pw)) { score++; document.getElementById('req-special').classList.add('req-ok'); }
+  else                              { document.getElementById('req-special').classList.remove('req-ok'); }
+
+  const levels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+  const colors = ['', '#ef4444', '#f59e0b', '#3b82f6', '#10b981'];
+  bar.style.width  = (score * 25) + '%';
+  bar.style.background = colors[score];
+  label.textContent    = pw.length === 0 ? 'Enter a password' : levels[score] || 'Very Weak';
+  label.style.color    = colors[score] || '#6b7280';
+}
+function togglePassword(id) {
+  const el  = document.getElementById(id);
+  const eye = document.getElementById('eye' + id.charAt(0).toUpperCase() + id.slice(1).replace(/_([a-z])/g, g => g[1].toUpperCase()));
+  if (el.type === 'password') { el.type = 'text';     if(eye) eye.className = 'bi bi-eye-slash'; }
+  else                        { el.type = 'password'; if(eye) eye.className = 'bi bi-eye'; }
+}
+</script>
+{% endblock %}

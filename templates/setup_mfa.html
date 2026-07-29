@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Setup MFA{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card" style="max-width:480px">
+    <div class="auth-header">
+      <div class="auth-logo">📱</div>
+      <h1 class="auth-title">Setup 2-Factor Auth</h1>
+      <p class="auth-subtitle">Scan the QR code with Google Authenticator</p>
+    </div>
+
+    <!-- Step 1: Scan QR -->
+    <div class="mfa-step mb-4">
+      <div class="step-badge">Step 1</div>
+      <p class="step-text">Open <strong>Google Authenticator</strong> (or Authy) and tap the <strong>+</strong> button, then scan this QR code:</p>
+      <div class="qr-container">
+        <img src="data:image/png;base64,{{ qr_b64 }}" alt="MFA QR Code" class="qr-image" id="qrCodeImage" />
+        <div class="qr-glow" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <!-- Step 2: Manual key -->
+    <div class="mfa-step mb-4">
+      <div class="step-badge">Step 2</div>
+      <p class="step-text">Can't scan? Enter this secret key manually:</p>
+      <div class="secret-key-box" id="secretKeyBox">
+        <code class="secret-key-text">{{ secret }}</code>
+        <button class="btn btn-sm btn-copy" onclick="copySecret()" id="btnCopySecret" title="Copy to clipboard">
+          <i class="bi bi-clipboard"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 3: Verify OTP -->
+    <div class="mfa-step">
+      <div class="step-badge">Step 3</div>
+      <p class="step-text">Enter the 6-digit code shown in your authenticator to confirm setup:</p>
+
+      <form method="POST" action="{{ url_for('auth.verify_mfa_setup') }}" id="mfaSetupForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <div class="otp-input-group mb-4">
+          <input type="text" class="form-control sc-input otp-input" id="otp" name="otp"
+                 placeholder="000000" maxlength="6" pattern="\d{6}" inputmode="numeric"
+                 autocomplete="one-time-code" required />
+        </div>
+        <button type="submit" class="btn btn-primary-glow w-100 py-2" id="btn-verify-mfa">
+          <i class="bi bi-shield-check me-2"></i>Activate MFA &amp; Continue
+        </button>
+      </form>
+    </div>
+
+    <div class="security-note mt-4">
+      <i class="bi bi-exclamation-triangle me-1"></i>
+      Keep your secret key in a safe place. You need it if you lose your phone.
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function copySecret() {
+  const txt = document.querySelector('.secret-key-text').textContent;
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = document.getElementById('btnCopySecret');
+    btn.innerHTML = '<i class="bi bi-clipboard-check"></i>';
+    btn.style.color = '#10b981';
+    setTimeout(() => {
+      btn.innerHTML = '<i class="bi bi-clipboard"></i>';
+      btn.style.color = '';
+    }, 2000);
+  });
+}
+// Auto-tab after 6 digits
+document.getElementById('otp').addEventListener('input', function() {
+  this.value = this.value.replace(/\D/g, '').slice(0, 6);
+  if (this.value.length === 6) document.getElementById('mfaSetupForm').submit();
+});
+</script>
+{% endblock %}

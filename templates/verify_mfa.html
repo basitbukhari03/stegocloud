@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Verify MFA{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card" style="max-width:420px">
+    <div class="auth-header">
+      <div class="auth-logo">🛡️</div>
+      <h1 class="auth-title">Two-Factor Auth</h1>
+      <p class="auth-subtitle">
+        Hi <strong>{{ username }}</strong>, enter your 6-digit authenticator code
+      </p>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.verify_mfa') }}" id="verifyMfaForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+      <!-- Visual OTP ring timer (cosmetic) -->
+      <div class="otp-timer-ring mb-4" aria-hidden="true">
+        <svg viewBox="0 0 80 80" class="timer-svg">
+          <circle cx="40" cy="40" r="36" class="timer-track" />
+          <circle cx="40" cy="40" r="36" class="timer-progress" id="timerArc" />
+        </svg>
+        <div class="timer-icon">📱</div>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label text-center d-block" for="otp">
+          <i class="bi bi-phone me-1"></i>Authentication Code
+        </label>
+        <input type="text" class="form-control sc-input otp-input text-center" id="otp" name="otp"
+               placeholder="• • • • • •" maxlength="6" pattern="\d{6}" inputmode="numeric"
+               autocomplete="one-time-code" autofocus required />
+        <div class="form-text text-center mt-1" style="color:#6b7280">
+          Code refreshes every 30 seconds
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary-glow w-100 py-2" id="btn-verify">
+        <i class="bi bi-shield-check me-2"></i>Verify &amp; Sign In
+        <span class="spinner-border spinner-border-sm ms-2 d-none" id="verifySpinner"></span>
+      </button>
+    </form>
+
+    <div class="auth-footer mt-4 text-center">
+      <a href="{{ url_for('auth.login') }}" class="auth-link">
+        <i class="bi bi-arrow-left me-1"></i>Back to Login
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Auto-submit on 6 digits
+document.getElementById('otp').addEventListener('input', function() {
+  this.value = this.value.replace(/\D/g, '').slice(0, 6);
+  if (this.value.length === 6) {
+    document.getElementById('verifySpinner').classList.remove('d-none');
+    document.getElementById('verifyMfaForm').submit();
+  }
+});
+
+// Animated TOTP countdown ring (30s period)
+(function() {
+  const arc = document.getElementById('timerArc');
+  if (!arc) return;
+  const r = 36, circ = 2 * Math.PI * r;
+  arc.style.strokeDasharray  = circ;
+  function update() {
+    const now  = Date.now() / 1000;
+    const frac = (now % 30) / 30;
+    arc.style.strokeDashoffset = circ * frac;
+  }
+  update();
+  setInterval(update, 500);
+})();
+</script>
+{% endblock %}

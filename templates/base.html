@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="StegoCloud – AES-256 Encrypted Steganography Cloud Storage System" />
+  <title>{% block title %}StegoCloud{% endblock %} | Secure Cloud Storage</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <!-- Custom CSS -->
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+{% if current_user.is_authenticated %}
+<!-- ═══════════ SIDEBAR ═══════════════════════════════════════════════════ -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <span class="brand-icon">🔐</span>
+    <span class="brand-name">StegoCloud</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="{{ url_for('main.dashboard') }}"
+       class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}"
+       id="nav-dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
+    <a href="{{ url_for('main.hide') }}"
+       class="nav-link {% if request.endpoint == 'main.hide' %}active{% endif %}"
+       id="nav-hide"><i class="bi bi-eye-slash-fill"></i><span>Hide Data</span></a>
+    <a href="{{ url_for('main.extract') }}"
+       class="nav-link {% if request.endpoint == 'main.extract' %}active{% endif %}"
+       id="nav-extract"><i class="bi bi-unlock-fill"></i><span>Extract Data</span></a>
+    <a href="{{ url_for('main.my_files') }}"
+       class="nav-link {% if request.endpoint == 'main.my_files' %}active{% endif %}"
+       id="nav-files"><i class="bi bi-cloud-fill"></i><span>My Files</span></a>
+    {% if current_user.is_admin() %}
+    <a href="{{ url_for('main.logs') }}"
+       class="nav-link {% if request.endpoint == 'main.logs' %}active{% endif %}"
+       id="nav-logs"><i class="bi bi-journal-text"></i><span>Audit Logs</span></a>
+    {% endif %}
+    {% if current_user.is_admin() %}
+    <div class="nav-divider">Admin</div>
+    <a href="{{ url_for('admin.admin_panel') }}"
+       class="nav-link {% if request.endpoint == 'admin.admin_panel' %}active{% endif %}"
+       id="nav-admin"><i class="bi bi-shield-lock-fill"></i><span>Admin Panel</span></a>
+    {% endif %}
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar">{{ current_user.username[0]|upper }}</div>
+      <div class="user-details">
+        <div class="user-name">{{ current_user.username }}</div>
+        <div class="user-role badge-role-{{ current_user.role }}">{{ current_user.role|upper }}</div>
+      </div>
+    </div>
+    <a href="{{ url_for('auth.logout') }}" class="btn-logout" id="btn-logout">
+      <i class="bi bi-box-arrow-right"></i>
+    </a>
+  </div>
+</div>
+
+<!-- ═══════════ MAIN CONTENT ══════════════════════════════════════════════ -->
+<div class="main-content" id="mainContent">
+  <div class="topbar">
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Sidebar">
+      <i class="bi bi-list"></i>
+    </button>
+    <div class="topbar-title">{% block page_title %}{% endblock %}</div>
+    <div class="topbar-actions">
+      <span class="mfa-badge {% if current_user.mfa_enabled %}mfa-on{% else %}mfa-off{% endif %}">
+        <i class="bi bi-shield-check"></i>
+        MFA {% if current_user.mfa_enabled %}ON{% else %}OFF{% endif %}
+      </span>
+    </div>
+  </div>
+
+  <!-- Flash Messages for authenticated layout -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show flash-slide" role="alert">
+            {% if category == 'success' %}<i class="bi bi-check-circle-fill me-2"></i>
+            {% elif category == 'danger' %}<i class="bi bi-x-circle-fill me-2"></i>
+            {% elif category == 'warning' %}<i class="bi bi-exclamation-triangle-fill me-2"></i>
+            {% else %}<i class="bi bi-info-circle-fill me-2"></i>{% endif %}
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="page-content fade-in">
+{% else %}
+<!-- ═══════════ PUBLIC LAYOUT ════════════════════════════════════════════ -->
+<div class="public-wrapper">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container-public">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show flash-slide" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+{% endif %}
+
+{# ══════════ ONE single content block — valid in Jinja2 ═════════════════ #}
+{% block content %}{% endblock %}
+
+{% if current_user.is_authenticated %}
+  </div>{# /page-content #}
+</div>{# /main-content #}
+{% else %}
+</div>{# /public-wrapper #}
+{% endif %}
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

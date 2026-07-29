@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block title %}Hide Data{% endblock %}
+{% block page_title %}Hide Data in Image{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <!-- ── Form Column ──────────────────────────────────────────────────────── -->
+  <div class="col-lg-6">
+    <div class="sc-card">
+      <div class="sc-card-header">
+        <h5 class="sc-card-title"><i class="bi bi-eye-slash-fill me-2"></i>Embed Secret Data</h5>
+      </div>
+      <div class="sc-card-body">
+        <form method="POST" action="{{ url_for('main.hide') }}"
+              enctype="multipart/form-data" id="hideForm" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+          <!-- Cover Image Upload -->
+          <div class="mb-4">
+            <label class="form-label" for="cover_image">
+              <i class="bi bi-image me-1"></i>Cover Image
+              <span class="badge bg-secondary ms-1">PNG / JPG</span>
+            </label>
+            <div class="drop-zone" id="dropZone">
+              <input type="file" class="drop-zone-input" id="cover_image"
+                     name="cover_image" accept=".png,.jpg,.jpeg" required />
+              <div class="drop-zone-prompt" id="dropPrompt">
+                <i class="bi bi-cloud-upload" style="font-size:2rem;color:#00d4ff"></i>
+                <p class="mt-2 mb-0">Drag & drop or <span class="text-cyan">browse</span></p>
+                <small style="color:#6b7280">Max 10 MB — PNG/JPG only</small>
+              </div>
+              <div class="drop-zone-preview d-none" id="dropPreview">
+                <img id="previewImg" src="" alt="Preview" class="preview-img" />
+                <div class="preview-meta" id="previewMeta"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Secret Message -->
+          <div class="mb-3">
+            <label class="form-label" for="secret_message">
+              <i class="bi bi-chat-square-text me-1"></i>Secret Message
+            </label>
+            <textarea class="form-control sc-input" id="secret_message"
+                      name="secret_message" rows="5"
+                      placeholder="Type your secret message here…" required></textarea>
+            <div class="d-flex justify-content-between mt-1">
+              <small style="color:#6b7280">Characters: <span id="charCount">0</span></small>
+              <small style="color:#6b7280">Max depends on image size</small>
+            </div>
+          </div>
+
+          <!-- Encryption Password -->
+          <div class="mb-3">
+            <label class="form-label" for="enc_password">
+              <i class="bi bi-key me-1"></i>Encryption Password
+            </label>
+            <div class="input-group">
+              <input type="password" class="form-control sc-input" id="enc_password"
+                     name="enc_password" placeholder="AES-256 encryption key" required />
+              <button class="btn btn-outline-secondary" type="button"
+                      onclick="togglePw('enc_password','eyeEnc')" aria-label="Toggle">
+                <i class="bi bi-eye" id="eyeEnc"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Confirm Password -->
+          <div class="mb-4">
+            <label class="form-label" for="conf_password">
+              <i class="bi bi-key-fill me-1"></i>Confirm Password
+            </label>
+            <div class="input-group">
+              <input type="password" class="form-control sc-input" id="conf_password"
+                     name="conf_password" placeholder="Re-enter password" required />
+              <button class="btn btn-outline-secondary" type="button"
+                      onclick="togglePw('conf_password','eyeConf')" aria-label="Toggle">
+                <i class="bi bi-eye" id="eyeConf"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Processing Progress -->
+          <div class="progress-section d-none" id="progressSection">
+            <div class="progress-label mb-2">
+              <span id="progressLabel">Processing…</span>
+            </div>
+            <div class="progress sc-progress">
+              <div class="progress-bar progress-bar-striped progress-bar-animated"
+                   id="hideProgressBar" style="width:0%"></div>
+            </div>
+            <div class="progress-steps mt-2" id="progressSteps"></div>
+          </div>
+
+          <button type="submit" class="btn btn-primary-glow w-100 py-2 mt-2" id="btnHide">
+            <i class="bi bi-eye-slash-fill me-2"></i>Encrypt &amp; Hide Data
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Info + Result Column ────────────────────────────────────────────────── -->
+  <div class="col-lg-6">
+    {% if success %}
+    <!-- ── SUCCESS RESULT ────────────────────────────────────────────────────── -->
+    <div class="result-card success-card fade-in" id="resultCard">
+      <div class="result-header">
+        <div class="result-icon">✅</div>
+        <h4>Data Hidden Successfully!</h4>
+        <p>Your secret has been encrypted with AES-256 and embedded inside the image.</p>
+      </div>
+
+      <!-- Before / After comparison -->
+      <div class="comparison-box">
+        <div class="comparison-side">
+          <div class="comparison-label">Original Image</div>
+          <div class="comparison-img-placeholder">
+            <i class="bi bi-image" style="font-size:3rem;color:#374151"></i>
+            <p style="color:#6b7280;font-size:.8rem">{{ original_name }}</p>
+          </div>
+        </div>
+        <div class="comparison-arrow">⟷</div>
+        <div class="comparison-side">
+          <div class="comparison-label">Stego Image</div>
+          <div class="comparison-img-placeholder stego-side">
+            <i class="bi bi-image" style="font-size:3rem;color:#00d4ff"></i>
+            <p style="color:#00d4ff;font-size:.8rem">{{ stego_filename }}</p>
+          </div>
+        </div>
+      </div>
+      <p class="comparison-caption">
+        🔍 <em>Can you see the difference? No! That's the power of Steganography!</em>
+      </p>
+
+      <!-- Stats -->
+      <div class="result-stats">
+        <div class="result-stat">
+          <span class="rs-label">Image Capacity</span>
+          <span class="rs-val">{{ capacity.characters }} chars</span>
+        </div>
+        <div class="result-stat">
+          <span class="rs-label">Message Length</span>
+          <span class="rs-val">{{ msg_length }} chars</span>
+        </div>
+        <div class="result-stat">
+          <span class="rs-label">Encryption</span>
+          <span class="rs-val">AES-256-CBC ✔</span>
+        </div>
+      </div>
+
+      <a href="{{ url_for('main.download_file', filename=stego_filename) }}"
+         class="btn btn-primary-glow w-100 mt-3" id="btnDownloadStego">
+        <i class="bi bi-download me-2"></i>Download Stego Image
+      </a>
+    </div>
+    {% else %}
+    <!-- ── Info panel ─────────────────────────────────────────────────────── -->
+    <div class="sc-card">
+      <div class="sc-card-header">
+        <h5 class="sc-card-title"><i class="bi bi-info-circle me-2"></i>How It Works</h5>
+      </div>
+      <div class="sc-card-body">
+        <ol class="how-list">
+          <li><span class="step-num">1</span> Upload a PNG or JPG cover image</li>
+          <li><span class="step-num">2</span> Type the secret message you want to hide</li>
+          <li><span class="step-num">3</span> Choose an AES-256 encryption password</li>
+          <li><span class="step-num">4</span> Click "Encrypt &amp; Hide" — done!</li>
+          <li><span class="step-num">5</span> Download the stego image — visually identical</li>
+        </ol>
+
+        <div class="tech-box mt-4">
+          <div class="tech-box-title">Protection Layers</div>
+          <div class="layer-badge" style="--c:#00d4ff">
+            <i class="bi bi-shield-lock me-2"></i>Layer 1: AES-256-CBC Encryption
+          </div>
+          <div class="layer-badge mt-2" style="--c:#7c3aed">
+            <i class="bi bi-image me-2"></i>Layer 2: LSB Steganography
+          </div>
+        </div>
+
+        <div class="tip-box mt-4">
+          <i class="bi bi-lightbulb me-2"></i>
+          <strong>Tip:</strong> Use large (1920×1080+) PNG images for best capacity.
+          A 1 MP image can hide ~37,000 characters.
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Char counter
+document.getElementById('secret_message').addEventListener('input', function(){
+  document.getElementById('charCount').textContent = this.value.length;
+});
+
+// File drop zone
+const dropZone   = document.getElementById('dropZone');
+const fileInput  = document.getElementById('cover_image');
+const dropPrompt = document.getElementById('dropPrompt');
+const dropPreview= document.getElementById('dropPreview');
+const previewImg = document.getElementById('previewImg');
+const previewMeta= document.getElementById('previewMeta');
+
+function showPreview(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    previewImg.src = e.target.result;
+    previewMeta.textContent = file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
+    dropPrompt.classList.add('d-none');
+    dropPreview.classList.remove('d-none');
+  };
+  reader.readAsDataURL(file);
+}
+fileInput.addEventListener('change', () => showPreview(fileInput.files[0]));
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) { fileInput.files = e.dataTransfer.files; showPreview(f); }
+});
+
+// Animated progress on submit
+document.getElementById('hideForm').addEventListener('submit', function(e) {
+  const pw1 = document.getElementById('enc_password').value;
+  const pw2 = document.getElementById('conf_password').value;
+  if (pw1 !== pw2) { e.preventDefault(); alert('Passwords do not match!'); return; }
+
+  document.getElementById('progressSection').classList.remove('d-none');
+  document.getElementById('btnHide').disabled = true;
+  const bar   = document.getElementById('hideProgressBar');
+  const label = document.getElementById('progressLabel');
+  const steps = document.getElementById('progressSteps');
+
+  const stageList = [
+    [15,  'Validating inputs…'],
+    [35,  'Encrypting with AES-256…'],
+    [60,  'Converting to binary bits…'],
+    [80,  'Embedding in image pixels…'],
+    [95,  'Saving to cloud storage…'],
+    [100, 'Done!'],
+  ];
+  let i = 0;
+  const runner = setInterval(() => {
+    if (i >= stageList.length) { clearInterval(runner); return; }
+    const [pct, msg] = stageList[i++];
+    bar.style.width   = pct + '%';
+    label.textContent = msg;
+    steps.innerHTML  += `<span class="progress-step-ok">✔ ${msg}</span> `;
+  }, 700);
+});
+
+function togglePw(id, eyeId) {
+  const el = document.getElementById(id);
+  const ic = document.getElementById(eyeId);
+  if (el.type === 'password') { el.type = 'text';     ic.className = 'bi bi-eye-slash'; }
+  else                        { el.type = 'password'; ic.className = 'bi bi-eye'; }
+}
+</script>
+{% endblock %}

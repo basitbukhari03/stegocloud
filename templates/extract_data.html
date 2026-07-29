@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+{% block title %}Extract Data{% endblock %}
+{% block page_title %}Extract Hidden Data{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <!-- ── Form ────────────────────────────────────────────────────────────── -->
+  <div class="col-lg-6">
+    <div class="sc-card">
+      <div class="sc-card-header">
+        <h5 class="sc-card-title"><i class="bi bi-unlock-fill me-2"></i>Decode Hidden Data</h5>
+      </div>
+      <div class="sc-card-body">
+        <form method="POST" action="{{ url_for('main.extract') }}"
+              enctype="multipart/form-data" id="extractForm" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+          <!-- Stego Image Upload -->
+          <div class="mb-4">
+            <label class="form-label" for="stego_image">
+              <i class="bi bi-image me-1"></i>Stego Image
+              <span class="badge bg-secondary ms-1">PNG / JPG</span>
+            </label>
+            <div class="drop-zone" id="dropZone">
+              <input type="file" class="drop-zone-input" id="stego_image"
+                     name="stego_image" accept=".png,.jpg,.jpeg" required />
+              <div class="drop-zone-prompt" id="dropPrompt">
+                <i class="bi bi-cloud-upload" style="font-size:2rem;color:#7c3aed"></i>
+                <p class="mt-2 mb-0">Upload a <span class="text-purple">stego image</span></p>
+                <small style="color:#6b7280">The image with hidden data</small>
+              </div>
+              <div class="drop-zone-preview d-none" id="dropPreview">
+                <img id="previewImg" src="" alt="Preview" class="preview-img" />
+                <div class="preview-meta" id="previewMeta"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Decryption Password -->
+          <div class="mb-4">
+            <label class="form-label" for="dec_password">
+              <i class="bi bi-key me-1"></i>Decryption Password
+            </label>
+            <div class="input-group">
+              <input type="password" class="form-control sc-input" id="dec_password"
+                     name="dec_password" placeholder="Password used during hiding" required />
+              <button class="btn btn-outline-secondary" type="button"
+                      onclick="togglePw()" aria-label="Toggle password">
+                <i class="bi bi-eye" id="eyeIcon"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Progress -->
+          <div class="progress-section d-none" id="progressSection">
+            <div class="progress-label mb-2">
+              <span id="progressLabel">Processing…</span>
+            </div>
+            <div class="progress sc-progress">
+              <div class="progress-bar progress-bar-striped progress-bar-animated"
+                   id="extractProgress" style="width:0%"></div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-outline-glow w-100 py-2 mt-2" id="btnExtract">
+            <i class="bi bi-unlock-fill me-2"></i>Extract &amp; Decrypt
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Result Column ───────────────────────────────────────────────────── -->
+  <div class="col-lg-6">
+    {% if success is defined and success %}
+    <!-- SUCCESS -->
+    <div class="result-card success-card" id="resultCard">
+      <div class="result-header">
+        <div class="result-icon decode-anim" id="decodeIcon">🔓</div>
+        <h4>Extraction Successful!</h4>
+        <p>Hidden data has been extracted and decrypted.</p>
+      </div>
+      <div class="extracted-msg-box" id="extractedMsg">
+        <div class="extracted-label">
+          <i class="bi bi-chat-square-text me-1"></i>Secret Message
+        </div>
+        <div class="extracted-content" id="msgContent">
+          {{ plaintext }}
+        </div>
+        <button class="btn btn-sm btn-copy-msg mt-2" onclick="copyMsg()" id="btnCopyMsg">
+          <i class="bi bi-clipboard me-1"></i>Copy Message
+        </button>
+      </div>
+      <div class="result-stats mt-3">
+        <div class="result-stat">
+          <span class="rs-label">Characters</span>
+          <span class="rs-val">{{ plaintext|length }}</span>
+        </div>
+        <div class="result-stat">
+          <span class="rs-label">Algorithm</span>
+          <span class="rs-val">AES-256 + LSB</span>
+        </div>
+        <div class="result-stat">
+          <span class="rs-label">Status</span>
+          <span class="rs-val" style="color:#10b981">✔ Verified</span>
+        </div>
+      </div>
+    </div>
+    {% elif success is defined and not success %}
+
+    {# ── Wrong Password Error ───────────────────────────────────────────────── #}
+    {% if error_type == 'wrong_password' %}
+    <div class="result-card fade-in"
+         style="border-color:rgba(239,68,68,.5);box-shadow:0 0 40px rgba(239,68,68,.15);">
+      <div class="result-header text-center mb-3">
+        <div style="font-size:3.5rem;margin-bottom:10px;animation:fadeIn .4s ease">🔑❌</div>
+        <h4 style="color:#ef4444;font-size:1.4rem;font-weight:800;">Wrong Password!</h4>
+        <p style="color:#9ca3af;font-size:.9rem;">
+          The password you entered is <strong style="color:#ef4444">incorrect</strong>.
+          AES-256 decryption failed.
+        </p>
+      </div>
+
+      <!-- Big red alert box -->
+      <div style="background:rgba(239,68,68,.12);border:2px solid rgba(239,68,68,.4);
+                  border-radius:10px;padding:16px 20px;margin-bottom:16px;text-align:center;">
+        <i class="bi bi-shield-lock-fill" style="font-size:1.8rem;color:#ef4444;display:block;margin-bottom:8px;"></i>
+        <div style="font-size:1rem;font-weight:700;color:#ef4444;">Access Denied</div>
+        <div style="font-size:.85rem;color:#9ca3af;margin-top:4px;">
+          Wrong password → AES-256 decryption blocked
+        </div>
+      </div>
+
+      {% if filename %}
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+                  border-radius:8px;padding:10px 14px;font-size:.82rem;color:#6b7280;margin-bottom:14px;">
+        <i class="bi bi-image me-1"></i> File: <code style="color:#9ca3af">{{ filename }}</code>
+      </div>
+      {% endif %}
+
+      <div class="fail-tips">
+        <p><i class="bi bi-lightbulb me-1" style="color:#f59e0b"></i> <strong>What to check:</strong></p>
+        <ul style="line-height:2">
+          <li>Re-enter the <strong>exact</strong> password used during hiding — it is case-sensitive</li>
+          <li>Caps Lock is off</li>
+          <li>No extra spaces before/after the password</li>
+        </ul>
+      </div>
+      <a href="{{ url_for('main.extract') }}"
+         class="btn btn-outline-glow w-100 mt-3" id="btnTryAgain">
+        <i class="bi bi-arrow-counterclockwise me-2"></i>Try Again with Correct Password
+      </a>
+    </div>
+
+    {# ── No Hidden Data Error ────────────────────────────────────────────────── #}
+    {% elif error_type == 'no_data' %}
+    <div class="result-card fade-in"
+         style="border-color:rgba(245,158,11,.4);box-shadow:0 0 30px rgba(245,158,11,.1);">
+      <div class="result-header text-center mb-3">
+        <div style="font-size:3.5rem;margin-bottom:10px;">🖼️❓</div>
+        <h4 style="color:#f59e0b;font-size:1.3rem;font-weight:800;">No Hidden Data Found</h4>
+        <p style="color:#9ca3af;font-size:.9rem;">
+          This image does not contain any StegoCloud-hidden data.
+        </p>
+      </div>
+      <div class="fail-tips" style="border-color:rgba(245,158,11,.2);background:rgba(245,158,11,.07);">
+        <p><i class="bi bi-exclamation-triangle me-1" style="color:#f59e0b"></i> <strong>Possible reasons:</strong></p>
+        <ul style="line-height:2">
+          <li>This is a regular image, not a stego image</li>
+          <li>Image was re-compressed or converted to JPG after hiding</li>
+          <li>Upload the original PNG stego file downloaded from StegoCloud</li>
+        </ul>
+      </div>
+    </div>
+
+    {# ── Generic Error ───────────────────────────────────────────────────────── #}
+    {% else %}
+    <div class="result-card fail-card fade-in">
+      <div class="result-header">
+        <div class="result-icon">⚠️</div>
+        <h4>Extraction Error</h4>
+        <p style="color:#9ca3af">{{ error_msg or 'An unexpected error occurred during extraction.' }}</p>
+      </div>
+      <div class="fail-tips mt-3">
+        <ul>
+          <li>Make sure you uploaded a valid PNG image</li>
+          <li>Try hiding and extracting again</li>
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+    {% else %}
+    <!-- INFO panel -->
+    <div class="sc-card">
+      <div class="sc-card-header">
+        <h5 class="sc-card-title"><i class="bi bi-info-circle me-2"></i>How Extraction Works</h5>
+      </div>
+      <div class="sc-card-body">
+        <ol class="how-list">
+          <li><span class="step-num">1</span> Upload the stego image you received</li>
+          <li><span class="step-num">2</span> Enter the password that was used to hide</li>
+          <li><span class="step-num">3</span> The system reads LSBs of every pixel</li>
+          <li><span class="step-num">4</span> Reconstructs the encrypted string</li>
+          <li><span class="step-num">5</span> AES-256 decrypts & reveals your message</li>
+        </ol>
+
+        <div class="tech-box mt-4">
+          <div class="tech-box-title">Extraction Pipeline</div>
+          <div class="pipeline">
+            <div class="pipe-step">
+              <i class="bi bi-image"></i>
+              <span>Stego Image</span>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step">
+              <i class="bi bi-grid-3x3"></i>
+              <span>Read LSBs</span>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step">
+              <i class="bi bi-shield-lock"></i>
+              <span>AES Decrypt</span>
+            </div>
+            <div class="pipe-arrow">→</div>
+            <div class="pipe-step" style="color:#10b981">
+              <i class="bi bi-chat-square-text"></i>
+              <span>Message</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tip-box mt-4">
+          <i class="bi bi-exclamation-triangle me-1"></i>
+          <strong>Important:</strong> Always keep the ORIGINAL stego PNG.
+          Re-compressing as JPEG destroys the hidden bits.
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Drop zone
+const dz = document.getElementById('dropZone');
+const fi = document.getElementById('stego_image');
+const dp = document.getElementById('dropPrompt');
+const dv = document.getElementById('dropPreview');
+
+function showPreview(file) {
+  const r = new FileReader();
+  r.onload = e => {
+    document.getElementById('previewImg').src = e.target.result;
+    document.getElementById('previewMeta').textContent = file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
+    dp.classList.add('d-none');
+    dv.classList.remove('d-none');
+  };
+  r.readAsDataURL(file);
+}
+fi.addEventListener('change', () => showPreview(fi.files[0]));
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) { fi.files = e.dataTransfer.files; showPreview(f); }
+});
+
+// Animated progress
+document.getElementById('extractForm').addEventListener('submit', function(){
+  document.getElementById('progressSection').classList.remove('d-none');
+  document.getElementById('btnExtract').disabled = true;
+  const bar   = document.getElementById('extractProgress');
+  const label = document.getElementById('progressLabel');
+  const stages = [[20,'Reading image pixels…'],[50,'Collecting LSBs…'],[75,'Reconstructing data…'],[90,'Decrypting AES-256…'],[100,'Done!']];
+  let i = 0;
+  const t = setInterval(() => {
+    if(i>=stages.length){clearInterval(t);return;}
+    bar.style.width = stages[i][0]+'%';
+    label.textContent = stages[i][1];
+    i++;
+  }, 600);
+});
+
+function togglePw() {
+  const el = document.getElementById('dec_password');
+  const ic = document.getElementById('eyeIcon');
+  if(el.type==='password'){el.type='text';ic.className='bi bi-eye-slash';}
+  else{el.type='password';ic.className='bi bi-eye';}
+}
+
+function copyMsg() {
+  const txt = document.getElementById('msgContent').textContent.trim();
+  navigator.clipboard.writeText(txt).then(()=>{
+    const btn=document.getElementById('btnCopyMsg');
+    btn.innerHTML='<i class="bi bi-clipboard-check me-1"></i>Copied!';
+    btn.style.color='#10b981';
+    setTimeout(()=>{btn.innerHTML='<i class="bi bi-clipboard me-1"></i>Copy Message';btn.style.color='';},2000);
+  });
+}
+
+// Decode animation on success
+(function(){
+  const el = document.getElementById('decodeIcon');
+  if(!el) return;
+  const icons = ['🔒','🔓','✅'];
+  let i = 0;
+  const t = setInterval(()=>{ el.textContent=icons[i++]; if(i>=icons.length) clearInterval(t); },400);
+})();
+</script>
+{% endblock %}
