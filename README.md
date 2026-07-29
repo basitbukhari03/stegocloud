@@ -108,18 +108,6 @@ The app starts at **http://localhost:5000**
 
 ---
 
-## 👤 Test Credentials
-
-| Role  | Username   | Password    | Note |
-|-------|------------|-------------|------|
-| Admin | `admin`    | `Admin@123` | Full admin access |
-| User  | `testuser` | `Test@123`  | Regular user |
-
-> ⚠️ **MFA Note:** Demo accounts have MFA enabled. On first login you'll need to:
-> 1. Go to `/setup-mfa` to regenerate a QR code for your authenticator app, OR
-> 2. Register a brand-new account and set up MFA properly from scratch.
-
----
 
 ## 🖥️ How to Use
 
